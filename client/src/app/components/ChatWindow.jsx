@@ -158,7 +158,7 @@ useEffect(() => {
 
     try {
       const res = await fetch(
-        `http://localhost:4000/api/conversations/${conversationId}/contact`,
+  `${process.env.NEXT_PUBLIC_API_URL}/api/conversations/${conversationId}/contact`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
