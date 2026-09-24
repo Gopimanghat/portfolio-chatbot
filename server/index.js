@@ -40,7 +40,8 @@ app.use(cors({
 app.use(express.json());
 // Session ID now comes from a client-generated header instead of a cookie,
 // since cross-domain cookies are blocked by modern browsers.
-app.use((req, res, next) => {
+// Session ID comes from a client-generated header instead of a cookie
+function requireSessionId(req, res, next) {
     const sessionId = req.header("x-session-id");
 
     if (!sessionId) {
@@ -49,13 +50,13 @@ app.use((req, res, next) => {
 
     req.sessionId = sessionId;
     next();
-});
+}
 
 app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
 });
 
-app.post("/api/message", async (req, res) => {
+app.post("/api/message", requireSessionId, async (req, res) => {
     const { message } = req.body;
 
     if (!message || typeof message !== "string") {
@@ -123,7 +124,7 @@ app.post("/api/conversations/:id/contact", async (req, res) => {
     }
 });
 
-app.get("/api/conversations/by-session", async (req, res) => {
+app.get("/api/conversations/by-session", requireSessionId, async (req, res) => {
     try {
         const history = await getConversationBySessionId(req.sessionId);
 
