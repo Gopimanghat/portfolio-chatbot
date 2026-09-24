@@ -4,6 +4,16 @@ import { useState, useRef, useEffect } from "react";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function getOrCreateSessionId() {
+  if (typeof window === "undefined") return null;
+  let id = localStorage.getItem("chat_session_id");
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("chat_session_id", id);
+  }
+  return id;
+}
+
 export default function ChatWindow() {
   const [messages, setMessages] = useState([
     { sender: "bot", content: "Hi! Ask me anything about my work or background." },
@@ -23,6 +33,77 @@ export default function ChatWindow() {
 
   const bottomRef = useRef(null);
 
+  // Poll for admin replies
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/conversations/${conversationId}`,
+          {
+            headers: { "x-session-id": getOrCreateSessionId() },
+          }
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        setMessages((prevMessages) => {
+          if (data.messages.length > prevMessages.length) {
+            return data.messages.map((m) => ({
+              sender: m.sender,
+              content: m.content,
+            }));
+          }
+          return prevMessages;
+        });
+      } catch (err) {
+        // Silently ignore polling errors
+      }
+    }, 9000);
+
+    return () => clearInterval(interval);
+  }, [conversationId]);
+
+  // Load history on mount
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/conversations/by-session`,
+          {
+            headers: { "x-session-id": getOrCreateSessionId() },
+          }
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        if (data.conversation && data.messages.length > 0) {
+          const restored = data.messages.map((m) => ({
+            sender: m.sender,
+            content: m.content,
+          }));
+          setMessages(restored);
+          setConversationId(data.conversation.id);
+
+          if (!data.conversation.visitor_email) {
+            setContactDismissedForSession(false);
+          } else {
+            setContactSubmitted(true);
+          }
+        }
+      } catch (err) {
+        // Silently ignore — fall back to default greeting
+      }
+    };
+
+    loadHistory();
+  }, []);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, showContactForm]);
@@ -31,7 +112,6 @@ export default function ChatWindow() {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
 
-    // If the contact form is open and they keep chatting instead, dismiss it
     if (showContactForm) {
       setShowContactForm(false);
       setContactDismissedForSession(true);
@@ -43,10 +123,12 @@ export default function ChatWindow() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:4000/api/message", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/message`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": getOrCreateSessionId(),
+        },
         body: JSON.stringify({ message: trimmed }),
       });
 
@@ -93,11 +175,13 @@ export default function ChatWindow() {
 
     try {
       const res = await fetch(
-        `http://localhost:4000/api/conversations/${conversationId}/contact`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/conversations/${conversationId}/contact`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": getOrCreateSessionId(),
+          },
           body: JSON.stringify({
             visitor_name: contactName.trim() || null,
             visitor_email: contactEmail.trim(),
@@ -127,7 +211,6 @@ export default function ChatWindow() {
 
   return (
     <div className="flex flex-col w-full max-w-2xl mx-auto h-[600px] border border-gray-800 rounded-xl bg-gray-950 overflow-hidden">
-      {/* Message list */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((msg, idx) => (
           <div
@@ -138,6 +221,8 @@ export default function ChatWindow() {
               className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm leading-relaxed ${
                 msg.sender === "user"
                   ? "bg-blue-600 text-white rounded-br-sm"
+                  : msg.sender === "admin"
+                  ? "bg-green-700 text-white rounded-bl-sm"
                   : "bg-gray-800 text-gray-100 rounded-bl-sm"
               }`}
             >
@@ -162,7 +247,6 @@ export default function ChatWindow() {
           </div>
         )}
 
-        {/* Inline contact capture form */}
         {showContactForm && (
           <div className="flex justify-start">
             <div className="max-w-[85%] bg-gray-800 text-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 space-y-2">
@@ -215,7 +299,6 @@ export default function ChatWindow() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input box */}
       <div className="flex items-center gap-2 border-t border-gray-800 p-3 bg-gray-900">
         <input
           type="text"
