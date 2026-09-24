@@ -41,19 +41,11 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Ensure every visitor has a session ID cookie
-app.use((req, res, next) => {
-    let sessionId = req.cookies.session_id;
-
-    if (!sessionId) {
-        sessionId = uuidv4();
-        res.cookie("session_id", sessionId, {
-            httpOnly: true,
-            maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
-        });
-    }
-
-    req.sessionId = sessionId;
-    next();
+res.cookie("session_id", sessionId, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
 });
 
 app.get("/api/health", (req, res) => {
