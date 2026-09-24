@@ -23,71 +23,6 @@ export default function ChatWindow() {
 
   const bottomRef = useRef(null);
 
-useEffect(() => {
-  if (!conversationId) return;
-
-  const interval = setInterval(async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/conversations/${conversationId}`, {
-        credentials: "include",
-      });
-
-      if (!res.ok) return;
-
-      const data = await res.json();
-
-      setMessages((prevMessages) => {
-        if (data.messages.length > prevMessages.length) {
-          return data.messages.map((m) => ({
-            sender: m.sender,
-            content: m.content,
-          }));
-        }
-        return prevMessages;
-      });
-    } catch (err) {
-      // Silently ignore polling errors
-    }
-  }, 9000);
-
-  return () => clearInterval(interval);
-}, [conversationId]);
-
-
-
-  useEffect(() => {
-  const loadHistory = async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/conversations/by-session`, {
-        credentials: "include",
-      });
-
-      if (!res.ok) return;
-
-      const data = await res.json();
-
-      if (data.conversation && data.messages.length > 0) {
-        const restored = data.messages.map((m) => ({
-          sender: m.sender,
-          content: m.content,
-        }));
-        setMessages(restored);
-        setConversationId(data.conversation.id);
-
-        if (!data.conversation.visitor_email) {
-          setContactDismissedForSession(false);
-        } else {
-          setContactSubmitted(true);
-        }
-      }
-    } catch (err) {
-      // Silently ignore — fall back to default greeting
-    }
-  };
-
-  loadHistory();
-}, []);
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, showContactForm]);
@@ -108,7 +43,7 @@ useEffect(() => {
     setLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/message`, {
+      const res = await fetch("http://localhost:4000/api/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -158,7 +93,7 @@ useEffect(() => {
 
     try {
       const res = await fetch(
-  `${process.env.NEXT_PUBLIC_API_URL}/api/conversations/${conversationId}/contact`,
+        `http://localhost:4000/api/conversations/${conversationId}/contact`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -194,24 +129,22 @@ useEffect(() => {
     <div className="flex flex-col w-full max-w-2xl mx-auto h-[600px] border border-gray-800 rounded-xl bg-gray-950 overflow-hidden">
       {/* Message list */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-{messages.map((msg, idx) => (
-  <div
-    key={idx}
-    className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-  >
-    <div
-      className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm leading-relaxed ${
-        msg.sender === "user"
-          ? "bg-blue-600 text-white rounded-br-sm"
-          : msg.sender === "admin"
-          ? "bg-green-700 text-white rounded-bl-sm"
-          : "bg-gray-800 text-gray-100 rounded-bl-sm"
-      }`}
-    >
-      {msg.content}
-    </div>
-  </div>
-))}
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm leading-relaxed ${
+                msg.sender === "user"
+                  ? "bg-blue-600 text-white rounded-br-sm"
+                  : "bg-gray-800 text-gray-100 rounded-bl-sm"
+              }`}
+            >
+              {msg.content}
+            </div>
+          </div>
+        ))}
 
         {loading && (
           <div className="flex justify-start">

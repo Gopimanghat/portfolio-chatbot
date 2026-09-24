@@ -38,21 +38,13 @@ app.use(cors({
     credentials: true,
 }));
 app.use(express.json());
-app.use(cookieParser());
-
-// Ensure every visitor has a session ID cookie
-// Ensure every visitor has a session ID cookie
+// Session ID now comes from a client-generated header instead of a cookie,
+// since cross-domain cookies are blocked by modern browsers.
 app.use((req, res, next) => {
-    let sessionId = req.cookies.session_id;
+    const sessionId = req.header("x-session-id");
 
     if (!sessionId) {
-        sessionId = uuidv4();
-        res.cookie("session_id", sessionId, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "none",
-            maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
-        });
+        return res.status(400).json({ error: "Missing session ID" });
     }
 
     req.sessionId = sessionId;
