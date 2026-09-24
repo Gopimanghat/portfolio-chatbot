@@ -28,7 +28,7 @@ useEffect(() => {
 
   const interval = setInterval(async () => {
     try {
-      const res = await fetch(`http://localhost:4000/api/conversations/${conversationId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/conversations/${conversationId}`, {
         credentials: "include",
       });
 
@@ -58,7 +58,7 @@ useEffect(() => {
   useEffect(() => {
   const loadHistory = async () => {
     try {
-      const res = await fetch("http://localhost:4000/api/conversations/by-session", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/conversations/by-session`, {
         credentials: "include",
       });
 
@@ -108,7 +108,7 @@ useEffect(() => {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:4000/api/message", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

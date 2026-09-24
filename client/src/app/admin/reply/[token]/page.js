@@ -19,7 +19,7 @@ export default function AdminReplyPage() {
     useEffect(() => {
         const loadConversation = async () => {
             try {
-                const res = await fetch(`http://localhost:4000/api/admin/conversation/${token}`);
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/conversation/${token}`);
 
                 if (!res.ok) {
                     setError("Conversation not found.");
@@ -52,7 +52,7 @@ export default function AdminReplyPage() {
 
         try {
             const res = await fetch(
-                `http://localhost:4000/api/admin/conversation/${token}/reply`,
+                `${process.env.NEXT_PUBLIC_API_URL}/api/admin/conversation/${token}/reply`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
