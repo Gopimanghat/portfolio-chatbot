@@ -25,6 +25,7 @@ const PORT = process.env.PORT || 4000;
 const allowedOrigins = [
     "http://localhost:3000",
     "https://portfolio-chatbot-pink.vercel.app",
+    "https://gopi-portfolio-nine.vercel.app",
 ];
 
 app.use(cors({
